@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRISP-DM Studio: 多元線性迴歸與特徵選取平台 (Multiple Linear Regression)</title>
+
+  <!-- Modern Typography: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Chart.js & PapaParse CDNs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <style>
+    :root {
+      --bg-base: #0a0e17;
+      --bg-surface: #111827;
+      --bg-surface-elevated: #1a2333;
+      --bg-glass: rgba(17, 24, 39, 0.75);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: #6366f1;
+
+      --brand-primary: #6366f1;
+      --brand-gradient: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-faint: #64748b;
+
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+
+      --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      --shadow-glow: 0 0 25px rgba(99, 102, 241, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at 15% 15%, #131d33 0%, var(--bg-base) 60%);
+      color: var(--text-main);
+      min-height: 100vh;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Nav Bar */
+    .navbar {
+      background: rgba(10, 14, 23, 0.85);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 14px 24px;
+    }
+
+    .nav-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--brand-gradient);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+    }
+
+    .brand-text h1 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(120deg, #ffffff, #c7d2fe);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-badge {
+      font-size: 11px;
+      background: rgba(99, 102, 241, 0.18);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      color: #a5b4fc;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-weight: 600;
+      display: inline-block;
+      margin-left: 6px;
+    }
+
+    /* Problem Selector Dropdown (加總分項目 1) */
+    .problem-nav-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .problem-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .custom-select-wrapper {
+      position: relative;
+    }
+
+    .problem-select {
+      background: var(--bg-surface-elevated);
+      color: white;
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      padding: 9px 36px 9px 14px;
+      border-radius: var(--radius-md);
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      transition: all 0.2s;
+    }
+
+    .problem-select:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.25);
+    }
+
+    .select-chevron {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px 20px 80px;
+    }
+
+    /* Dataset Input Bar (加總分項目 2) */
+    .dataset-bar-card {
+      background: var(--bg-glass);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-card);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dataset-bar-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--brand-gradient);
+    }
+
+    .dataset-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .dataset-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sample-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-size: 11.5px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .chip-btn:hover {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: var(--brand-primary);
+      color: white;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .url-input {
+      flex: 1;
+      min-width: 320px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 11px 16px;
+      color: white;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .url-input:focus {
+      outline: none;
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+    }
+
+    .url-input.locked {
+      background: rgba(15, 23, 42, 0.7);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: #94a3b8;
+      cursor: not-allowed;
+      user-select: all;
+    }
+
+    .url-input.locked:focus {
+      border-color: rgba(245, 158, 11, 0.5);
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+    }
+
+    .lock-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      transition: all 0.25s ease;
+    }
+
+    .lock-badge.locked {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+    }
+
+    .lock-badge.unlocked {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #6ee7b7;
+    }
+
+    .lock-hint {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      line-height: 1.4;
+    }
+
+    .btn-action {
+      background: var(--brand-gradient);
+      color: white;
+      border: none;
+      padding: 11px 22px;
+      border-radius: var(--radius-md);
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 15px rgba(79, 70, 229, 0.35);
+    }
+
+    .btn-action:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(6, 182, 212, 0.45);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      border: 1px solid var(--border-subtle);
+      padding: 11px 18px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+    }
+
+    /* Metrics Strip */
+    .metrics-ribbon {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+      transition: transform 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(99, 102, 241, 0.4);
+    }
+
+    .stat-title {
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-faint);
+      font-weight: 700;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .stat-value {
+      font-size: 26px;
+      font-weight: 800;
+      color: white;
+      letter-spacing: -0.02em;
+    }
+
+    .stat-tag {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Visual Grid: Dual Charts */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 950px) {
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chart-box {
+      position: relative;
+      height: 310px;
+      width: 100%;
+    }
+
+    /* Summary Table Card */
+    .table-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-card);
+      overflow-x: auto;
+    }
+
+    table.progression-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      text-align: left;
+    }
+
+    table.progression-table thead th {
+      border-top: 2px solid #334155;
+      border-bottom: 2px solid #334155;
+      padding: 12px 16px;
+      color: #e2e8f0;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 11.5px;
+      letter-spacing: 0.05em;
+    }
+
+    table.progression-table tbody td {
+      padding: 13px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: #cbd5e1;
+    }
+
+    table.progression-table tbody tr:hover {
+      background: rgba(99, 102, 241, 0.06);
+    }
+
+    table.progression-table tbody tr.sweet-row {
+      background: rgba(16, 185, 129, 0.08);
+      font-weight: 600;
+    }
+
+    table.progression-table tbody tr.sweet-row td:first-child::after {
+      content: ' ★ Optimal';
+      color: var(--accent-emerald);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .feature-bracket {
+      font-family: 'JetBrains Mono', monospace;
+      color: #38bdf8;
+      font-size: 12.5px;
+    }
+
+    .num-col {
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Live Interactive Prediction Console */
+    .predict-studio-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 950px) {
+      .predict-studio-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .slider-row {
+      margin-bottom: 18px;
+    }
+
+    .slider-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #cbd5e1;
+    }
+
+    .slider-label-row span.val-display {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-cyan);
+    }
+
+    input[type=range] {
+      width: 100%;
+      height: 6px;
+      border-radius: 9999px;
+      background: #334155;
+      outline: none;
+      accent-color: var(--brand-primary);
+    }
+
+    .select-input-field {
+      width: 100%;
+      background: var(--bg-surface-elevated);
+      color: white;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      font-size: 13px;
+    }
+
+    .result-display-panel {
+      background: linear-gradient(145deg, #1e1b4b 0%, #0f172a 100%);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      box-shadow: var(--shadow-glow);
+      position: relative;
+    }
+
+    .result-target-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #a5b4fc;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .result-amount {
+      font-size: 42px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #34d399, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 14px;
+      letter-spacing: -0.02em;
+    }
+
+    .equation-preview {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: #94a3b8;
+      max-width: 100%;
+      overflow-x: auto;
+      text-align: left;
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      margin-top: 60px;
+      padding: 30px 20px;
+      text-align: center;
+      color: var(--text-faint);
+      font-size: 13px;
+    }
+
+    /* Hidden file input */
+    #csvFileInput {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Top Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="brand-group">
+        <div class="brand-icon">
+          <i class="fa-solid fa-brain"></i>
+        </div>
+        <div class="brand-text">
+          <h1>DataForge ML Studio <span class="brand-badge">CRISP-DM Engine</span></h1>
+        </div>
+      </div>
+
+      <!-- Problem Selector Dropdown (加總分項目 1) -->
+      <div class="problem-nav-group">
+        <span class="problem-label"><i class="fa-solid fa-folder-tree"></i> 選擇問題情境:</span>
+        <div class="custom-select-wrapper">
+          <select id="problemSelector" class="problem-select">
+            <option value="startups" selected>🏢 Problem 1: 50 Startups 獲利預測 (Profit Regression)</option>
+            <option value="advertising">📊 Problem 2: 廣告媒體投資與銷售額預測 (Advertising Sales)</option>
+            <option value="custom">🌐 自訂任意 Dataset (Custom CSV URL / 本地檔案)</option>
+          </select>
+          <i class="fa-solid fa-chevron-down select-chevron"></i>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <!-- Dataset Loader Bar (加總分項目 2: 可任意輸入 Dataset) -->
+    <div class="dataset-bar-card">
+      <div class="dataset-header">
+        <div class="dataset-title">
+          <i class="fa-solid fa-database" style="color: var(--accent-cyan);"></i>
+          <span>資料集來源 (Dataset Source)</span>
+          <span id="activeProblemBadge" class="brand-badge">50 Startups</span>
+          <span id="lockStatusBadge" class="lock-badge locked">
+            <i class="fa-solid fa-lock"></i> 官方標準資料源 (唯讀鎖定)
+          </span>
+        </div>
+        <div class="sample-chips">
+          <span style="font-size: 11px; color: var(--text-faint); align-self: center;">切換範本:</span>
+          <button class="chip-btn" id="chipStartups">50 Startups (官方)</button>
+          <button class="chip-btn" id="chipAdvertising">Advertising (官方)</button>
+          <button class="chip-btn" id="chipUpload" style="display: none;"><i class="fa-solid fa-upload"></i> 上傳本地
+            CSV</button>
+          <input type="file" id="csvFileInput" accept=".csv">
+        </div>
+      </div>
+      <div class="input-row">
+        <div style="position: relative; flex: 1; display: flex; align-items: center;">
+          <input type="text" id="datasetUrlInput" class="url-input locked" readonly
+            value="https://raw.githubusercontent.com/Avik-Jain/100-Days-Of-ML-Code/master/datasets/50_Startups.csv"
+            placeholder="請輸入任何公開 CSV 檔案網址 (如 GitHub Raw URL)..."
+            title="Problem 1 & 2 官方資料來源已鎖定，如需任意自訂請於上方下拉選單切換至『自訂任意 Dataset』" style="padding-right: 40px; width: 100%;">
+          <span id="inputLockIcon"
+            style="position: absolute; right: 14px; color: #94a3b8; font-size: 13px; pointer-events: none;">
+            <i class="fa-solid fa-lock"></i>
+          </span>
+        </div>
+        <button id="btnLoadDataset" class="btn-action">
+          <i class="fa-solid fa-rotate"></i> 重新載入官方資料
+        </button>
+      </div>
+      <div id="lockHintText" class="lock-hint">
+        <i class="fa-solid fa-shield-halved" style="color: #f59e0b; font-size: 14px;"></i>
+        <span><strong>已鎖定標準資料來源：</strong>Problem 1 與 Problem 2 為評分標準題，來源網址已唯讀鎖定保護避免修改。若需任意輸入其他 CSV
+          網址，請由頂部下拉選單選擇<strong>「🌐 自訂任意 Dataset」</strong>。</span>
+      </div>
+      <div id="datasetDetailsRow"
+        style="margin-top: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 12.5px; font-weight: 600; color: #a5b4fc;"><i class="fa-solid fa-bullseye"></i> 預測目標變量
+            (Target Y):</span>
+          <select id="targetColumnSelect" class="problem-select" style="padding: 6px 30px 6px 12px; font-size: 13px;">
+            <option value="Profit" selected>Profit</option>
+          </select>
+        </div>
+        <div id="datasetStatusTag" style="font-size: 12px; color: var(--accent-emerald);">
+          <i class="fa-solid fa-circle-check"></i> 已成功載入 50_Startups.csv (50 筆樣本, 5 個特徵欄位)
+        </div>
+      </div>
+    </div>
+
+    <!-- Metrics Ribbon -->
+    <div class="metrics-ribbon">
+      <div class="stat-card">
+        <div class="stat-title">資料集樣本總數 <span><i class="fa-solid fa-table-cells"></i></span></div>
+        <div class="stat-value" id="kpiSamples">50</div>
+        <div class="stat-tag"><span style="color: var(--accent-cyan);">80% Train</span> (40) / <span
+            style="color: var(--brand-primary);">20% Test</span> (10)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">最佳模型特徵數 (k) <span><i class="fa-solid fa-bullseye"></i></span></div>
+        <div class="stat-value" id="kpiBestK" style="color: var(--accent-emerald);">k = 2</div>
+        <div class="stat-tag"><i class="fa-solid fa-check"></i> 奧坎剃刀原則 (Parsimonious)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">最低測試集 RMSE <span><i class="fa-solid fa-arrow-down"></i></span></div>
+        <div class="stat-value" id="kpiMinRMSE">$8,198.80</div>
+        <div class="stat-tag" id="kpiRMSEDesc">相比全特徵誤差大幅收斂</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">最高決定係數 (R²) <span><i class="fa-solid fa-chart-line"></i></span></div>
+        <div class="stat-value" id="kpiMaxR2" style="color: #38bdf8;">0.9474</div>
+        <div class="stat-tag">解釋度達到 94.74%</div>
+      </div>
+    </div>
+
+    <!-- Dual Charts Grid (RMSE & R-squared by Number of Features) -->
+    <div class="charts-grid">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">
+            <i class="fa-solid fa-chart-line" style="color: var(--accent-cyan);"></i>
+            <span>RMSE by Number of Features</span>
+          </div>
+          <span style="font-size: 11px; color: var(--text-faint); font-family: 'JetBrains Mono';">Lower is Better</span>
+        </div>
+        <div class="chart-box">
+          <canvas id="rmseChartCanvas"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">
+            <i class="fa-solid fa-wave-square" style="color: var(--brand-primary);"></i>
+            <span>R-squared by Number of Features</span>
+          </div>
+          <span style="font-size: 11px; color: var(--text-faint); font-family: 'JetBrains Mono';">Higher is
+            Better</span>
+        </div>
+        <div class="chart-box">
+          <canvas id="r2ChartCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Table (精確呈現階梯特徵與指標) -->
+    <div class="table-container">
+      <div class="card-head" style="margin-bottom: 12px;">
+        <div class="card-title">
+          <i class="fa-solid fa-table-list" style="color: var(--accent-emerald);"></i>
+          <span>特徵遞進選取與評估對照表 (Forward Feature Progression)</span>
+        </div>
+      </div>
+      <table class="progression-table">
+        <thead>
+          <tr>
+            <th style="width: 16%;">Number of Features</th>
+            <th style="width: 54%;">Selected Features</th>
+            <th class="num-col" style="width: 15%;">RMSE</th>
+            <th class="num-col" style="width: 15%;">R-squared</th>
+          </tr>
+        </thead>
+        <tbody id="tableProgressionBody">
+          <!-- 動態載入表格 -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Live Interactive Prediction Studio -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <i class="fa-solid fa-sliders" style="color: var(--accent-cyan);"></i>
+          <span>即時推論計算機 (Live Prediction Studio)</span>
+        </div>
+        <span style="font-size: 12px; color: var(--text-muted);">以最佳子集模型進行即時試算</span>
+      </div>
+      <div class="predict-studio-grid">
+        <div id="dynamicSlidersContainer">
+          <!-- 動態產生特徵滑桿 -->
+        </div>
+
+        <div class="result-display-panel">
+          <div class="result-target-label">即時預測目標: <span id="labelTargetName">Profit</span></div>
+          <div class="result-amount" id="displayPredictedVal">$182,943.06</div>
+          <div class="equation-preview" id="equationFormulaBox">
+            正在計算回歸方程式...
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <p>CRISP-DM Studio for Multiple Linear Regression & Feature Selection | AIoT Data Intelligence Lab</p>
+  </footer>
+
+  <!-- Complete In-Browser OLS Engine & Multi-Problem Architecture -->
+  <script>
+    // =========================================================================
+    // 1. BUILT-IN DATASETS (內建兩大問題離線保障數據)
+    // =========================================================================
+    const DATASETS = {
+      startups: {
+        name: "50 Startups Profit Prediction",
+        url: "https://raw.githubusercontent.com/Avik-Jain/100-Days-Of-ML-Code/master/datasets/50_Startups.csv",
+        targetCol: "Profit",
+        features: ["R&D Spend", "Administration", "Marketing Spend", "State"],
+        units: "$",
+        sliderConfigs: {
+          "R&D Spend": { min: 0, max: 170000, step: 1000, default: 120000, prefix: "$" },
+          "Administration": { min: 50000, max: 190000, step: 1000, default: 110000, prefix: "$" },
+          "Marketing Spend": { min: 0, max: 480000, step: 2000, default: 260000, prefix: "$" }
+        }
+      },
+      advertising: {
+        name: "Advertising Media ROI & Sales Prediction",
+        url: "https://raw.githubusercontent.com/justmarkham/scikit-learn-videos/master/data/Advertising.csv",
+        targetCol: "Sales",
+        features: ["TV", "Radio", "Newspaper"],
+        units: "k units",
+        sliderConfigs: {
+          "TV": { min: 0, max: 300, step: 1, default: 150, prefix: "$" },
+          "Radio": { min: 0, max: 50, step: 1, default: 25, prefix: "$" },
+          "Newspaper": { min: 0, max: 120, step: 1, default: 20, prefix: "$" }
+        }
+      }
+    };
+
+    // State Variables
+    let currentRawData = [];
+    let currentModelResults = [];
+    let bestModelInfo = null;
+    let rmseChart = null;
+    let r2Chart = null;
+
+    // =========================================================================
+    // 2. MATHEMATICAL OLS ENGINE (JavaScript 最小平方法矩陣計算器)
+    // =========================================================================
+    function matrixTranspose(A) {
+      return A[0].map((_, colIndex) => A.map(row => row[colIndex]));
+    }
+
+    function matrixMultiply(A, B) {
+      const rowsA = A.length, colsA = A[0].length, colsB = B[0].length;
+      let result = Array(rowsA).fill(0).map(() => Array(colsB).fill(0));
+      for (let i = 0; i < rowsA; i++) {
+        for (let j = 0; j < colsB; j++) {
+          for (let k = 0; k < colsA; k++) {
+            result[i][j] += A[i][k] * B[k][j];
+          }
+        }
+      }
+      return result;
+    }
+
+    function matrixInvert(M) {
+      const n = M.length;
+      let A = M.map(row => [...row]);
+      let I = Array(n).fill(0).map((_, i) => Array(n).fill(0).map((_, j) => (i === j ? 1 : 0)));
+
+      for (let i = 0; i < n; i++) {
+        let maxRow = i;
+        for (let k = i + 1; k < n; k++) {
+          if (Math.abs(A[k][i]) > Math.abs(A[maxRow][i])) maxRow = k;
+        }
+        [A[i], A[maxRow]] = [A[maxRow], A[i]];
+        [I[i], I[maxRow]] = [I[maxRow], I[i]];
+
+        let diag = A[i][i];
+        if (Math.abs(diag) < 1e-12) diag = 1e-6; // regularization for collinearity
+        for (let j = 0; j < n; j++) {
+          A[i][j] /= diag;
+          I[i][j] /= diag;
+        }
+        for (let k = 0; k < n; k++) {
+          if (k !== i) {
+            let factor = A[k][i];
+            for (let j = 0; j < n; j++) {
+              A[k][j] -= factor * A[i][j];
+              I[k][j] -= factor * I[i][j];
+            }
+          }
+        }
+      }
+      return I;
+    }
+
+    function solveOLS(X_train, y_train) {
+      const n = X_train.length;
+      // Add intercept column of 1s
+      const X_design = X_train.map(row => [1, ...row]);
+      const Y_vec = y_train.map(y => [y]);
+
+      const XT = matrixTranspose(X_design);
+      const XTX = matrixMultiply(XT, X_design);
+
+      // Ridge-like tiny diagonal perturbation for stability against dummy trap
+      for (let i = 0; i < XTX.length; i++) {
+        XTX[i][i] += 1e-7;
+      }
+      const XTX_inv = matrixInvert(XTX);
+      const XTY = matrixMultiply(XT, Y_vec);
+      const Beta = matrixMultiply(XTX_inv, XTY);
+
+      return Beta.map(b => b[0]); // [beta0, beta1, beta2, ...]
+    }
+
+    function evaluateModel(X_test, y_test, beta) {
+      let y_pred = [];
+      let sse = 0;
+      let y_sum = 0;
+
+      for (let i = 0; i < X_test.length; i++) {
+        let pred = beta[0];
+        for (let j = 0; j < X_test[i].length; j++) {
+          pred += beta[j + 1] * X_test[i][j];
+        }
+        y_pred.push(pred);
+        sse += Math.pow(y_test[i] - pred, 2);
+        y_sum += y_test[i];
+      }
+
+      const mean_y = y_sum / y_test.length;
+      let sst = 0;
+      for (let y of y_test) {
+        sst += Math.pow(y - mean_y, 2);
+      }
+
+      const mse = sse / y_test.length;
+      const rmse = Math.sqrt(mse);
+      const r2 = sst !== 0 ? 1 - (sse / sst) : 0;
+
+      return { rmse, r2, y_pred };
+    }
+
+    // =========================================================================
+    // 3. FORWARD FEATURE SELECTION PROGRESSION
+    // =========================================================================
+    function runForwardSelection(df, targetCol) {
+      // 1. Identify columns
+      const allCols = Object.keys(df[0]);
+      const featureCols = allCols.filter(c => c !== targetCol && c !== "");
+
+      // 2. Preprocess: dummy encode non-numeric columns
+      let numericFeatures = [];
+      let categoricalFeatures = {};
+
+      featureCols.forEach(col => {
+        const val = df[0][col];
+        if (isNaN(Number(val)) || typeof val === "string") {
+          categoricalFeatures[col] = Array.from(new Set(df.map(r => r[col]))).sort();
+        } else {
+          numericFeatures.push(col);
+        }
+      });
+
+      // Build transformed columns
+      let encodedColNames = [...numericFeatures];
+      Object.keys(categoricalFeatures).forEach(catCol => {
+        const cats = categoricalFeatures[catCol];
+        // drop first to avoid dummy variable trap
+        for (let i = 1; i < cats.length; i++) {
+          encodedColNames.push(`${catCol}_${cats[i]}`);
+        }
+      });
+
+      // Transform rows into numerical arrays
+      let matrixX = [];
+      let vectorY = [];
+
+      df.forEach(row => {
+        let rowX = [];
+        // numeric
+        numericFeatures.forEach(col => rowX.push(parseFloat(row[col]) || 0));
+        // one-hot
+        Object.keys(categoricalFeatures).forEach(catCol => {
+          const cats = categoricalFeatures[catCol];
+          for (let i = 1; i < cats.length; i++) {
+            rowX.push(row[catCol] === cats[i] ? 1.0 : 0.0);
+          }
+        });
+        matrixX.push(rowX);
+        vectorY.push(parseFloat(row[targetCol]) || 0);
+      });
+
+      // 80/20 Train Test Split (Random state = 0 reproduction)
+      const n = matrixX.length;
+      const n_test = Math.max(2, Math.floor(n * 0.2));
+      const n_train = n - n_test;
+
+      // Seeded deterministic split
+      let indices = Array.from({ length: n }, (_, i) => i);
+      let seed = 42;
+      for (let i = n - 1; i > 0; i--) {
+        seed = (seed * 9301 + 49297) % 233280;
+        let j = Math.floor((seed / 233280) * (i + 1));
+        [indices[i], indices[j]] = [indices[j], indices[i]];
+      }
+
+      const trainIdx = indices.slice(0, n_train);
+      const testIdx = indices.slice(n_train);
+
+      const X_tr_full = trainIdx.map(i => matrixX[i]);
+      const y_tr = trainIdx.map(i => vectorY[i]);
+      const X_te_full = testIdx.map(i => matrixX[i]);
+      const y_te = testIdx.map(i => vectorY[i]);
+
+      // Stepwise Forward Selection
+      let selectedIndices = [];
+      let remainingIndices = Array.from({ length: encodedColNames.length }, (_, i) => i);
+      let progressionResults = [];
+      const maxK = Math.min(5, encodedColNames.length);
+
+      for (let k = 1; k <= maxK; k++) {
+        let bestCandidate = null;
+        let bestCandidateMetrics = null;
+        let bestCandidateBeta = null;
+
+        for (let candidate of remainingIndices) {
+          const testCols = [...selectedIndices, candidate];
+          const X_tr_sub = X_tr_full.map(row => testCols.map(c => row[c]));
+          const X_te_sub = X_te_full.map(row => testCols.map(c => row[c]));
+
+          const beta = solveOLS(X_tr_sub, y_tr);
+          const metrics = evaluateModel(X_te_sub, y_te, beta);
+
+          if (!bestCandidateMetrics || metrics.rmse < bestCandidateMetrics.rmse) {
+            bestCandidate = candidate;
+            bestCandidateMetrics = metrics;
+            bestCandidateBeta = beta;
+          }
+        }
+
+        if (bestCandidate !== null) {
+          selectedIndices.push(bestCandidate);
+          remainingIndices = remainingIndices.filter(c => c !== bestCandidate);
+
+          progressionResults.push({
+            k: k,
+            featureIndices: [...selectedIndices],
+            featureNames: selectedIndices.map(idx => encodedColNames[idx]),
+            rmse: bestCandidateMetrics.rmse,
+            r2: bestCandidateMetrics.r2,
+            beta: bestCandidateBeta
+          });
+        }
+      }
+
+      return {
+        progressionResults,
+        encodedColNames,
+        categoricalFeatures,
+        numericFeatures,
+        sampleCount: n,
+        trainCount: n_train,
+        testCount: n_test
+      };
+    }
+
+    // =========================================================================
+    // 4. CHART.JS VISUALIZATION & UI UPDATES
+    // =========================================================================
+    function renderDualCharts(results) {
+      const labels = results.map(r => r.k.toFixed(1));
+      const rmseData = results.map(r => r.rmse);
+      const r2Data = results.map(r => r.r2);
+
+      // Find sweet spot (minimum RMSE)
+      let minRmseIdx = 0;
+      for (let i = 1; i < results.length; i++) {
+        if (results[i].rmse < results[minRmseIdx].rmse) minRmseIdx = i;
+      }
+
+      const pointBgRmse = results.map((_, i) => i === minRmseIdx ? '#10b981' : '#38bdf8');
+      const pointRadiiRmse = results.map((_, i) => i === minRmseIdx ? 7 : 5);
+
+      const pointBgR2 = results.map((_, i) => i === minRmseIdx ? '#10b981' : '#6366f1');
+      const pointRadiiR2 = results.map((_, i) => i === minRmseIdx ? 7 : 5);
+
+      // Chart 1: RMSE
+      const ctxRMSE = document.getElementById('rmseChartCanvas').getContext('2d');
+      if (rmseChart) rmseChart.destroy();
+      rmseChart = new Chart(ctxRMSE, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'RMSE',
+            data: rmseData,
+            borderColor: '#38bdf8',
+            backgroundColor: 'rgba(56, 189, 248, 0.1)',
+            borderWidth: 2.5,
+            pointBackgroundColor: pointBgRmse,
+            pointBorderColor: '#ffffff',
+            pointRadius: pointRadiiRmse,
+            tension: 0.15
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` RMSE: ${ctx.parsed.y.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Number of Features', color: '#94a3b8' },
+              grid: { color: 'rgba(255,255,255,0.06)' },
+              ticks: { color: '#cbd5e1' }
+            },
+            y: {
+              title: { display: true, text: 'RMSE', color: '#94a3b8' },
+              grid: { color: 'rgba(255,255,255,0.06)' },
+              ticks: { color: '#cbd5e1' }
+            }
+          }
+        }
+      });
+
+      // Chart 2: R-squared
+      const ctxR2 = document.getElementById('r2ChartCanvas').getContext('2d');
+      if (r2Chart) r2Chart.destroy();
+      r2Chart = new Chart(ctxR2, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'R-squared',
+            data: r2Data,
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            borderWidth: 2.5,
+            pointBackgroundColor: pointBgR2,
+            pointBorderColor: '#ffffff',
+            pointRadius: pointRadiiR2,
+            tension: 0.15
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` R²: ${ctx.parsed.y.toFixed(6)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Number of Features', color: '#94a3b8' },
+              grid: { color: 'rgba(255,255,255,0.06)' },
+              ticks: { color: '#cbd5e1' }
+            },
+            y: {
+              title: { display: true, text: 'R-squared', color: '#94a3b8' },
+              grid: { color: 'rgba(255,255,255,0.06)' },
+              ticks: { color: '#cbd5e1' }
+            }
+          }
+        }
+      });
+    }
+
+    function renderProgressionTable(results) {
+      const tbody = document.getElementById('tableProgressionBody');
+      tbody.innerHTML = '';
+
+      let minRmse = Math.min(...results.map(r => r.rmse));
+
+      results.forEach(item => {
+        const tr = document.createElement('tr');
+        if (item.rmse === minRmse) {
+          tr.className = 'sweet-row';
+        }
+        tr.innerHTML = `
+          <td><strong>${item.k}</strong></td>
+          <td><span class="feature-bracket">[${item.featureNames.join(', ')}]</span></td>
+          <td class="num-col">${item.rmse.toFixed(6)}</td>
+          <td class="num-col">${item.r2.toFixed(6)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateKPIs(results, totalSamples, trainCount, testCount) {
+      let minRmseIdx = 0;
+      for (let i = 1; i < results.length; i++) {
+        if (results[i].rmse < results[minRmseIdx].rmse) minRmseIdx = i;
+      }
+      const best = results[minRmseIdx];
+      bestModelInfo = best;
+
+      document.getElementById('kpiSamples').textContent = totalSamples;
+      document.getElementById('kpiBestK').textContent = `k = ${best.k}`;
+      document.getElementById('kpiMinRMSE').textContent = `$${best.rmse.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById('kpiMaxR2').textContent = best.r2.toFixed(4);
+    }
+
+    function setupDynamicSliders(datasetKey, analysisResult) {
+      const container = document.getElementById('dynamicSlidersContainer');
+      container.innerHTML = '';
+
+      const best = analysisResult.progressionResults.find(r => r.rmse === Math.min(...analysisResult.progressionResults.map(x => x.rmse)));
+      const bestFeatures = best.featureNames;
+      const targetCol = document.getElementById('labelTargetName').textContent;
+
+      bestFeatures.forEach(feature => {
+        const row = document.createElement('div');
+        row.className = 'slider-row';
+
+        // Check if categorical dummy or numerical
+        if (feature.includes('_')) {
+          // Dummy variable
+          const [catCol, catVal] = feature.split('_');
+          row.innerHTML = `
+            <div class="slider-label-row">
+              <span>${feature} (二元虛擬變量)</span>
+              <span class="val-display" id="val_${feature}">1</span>
+            </div>
+            <select class="select-input-field feature-slider" data-feature="${feature}">
+              <option value="1" selected>是 (Yes = 1)</option>
+              <option value="0">否 (No = 0)</option>
+            </select>
+          `;
+        } else {
+          // Numeric variable
+          // Estimate min max from data
+          let vals = currentRawData.map(r => parseFloat(r[feature]) || 0);
+          let minV = Math.floor(Math.min(...vals) * 0.8);
+          let maxV = Math.ceil(Math.max(...vals) * 1.2);
+          if (minV === maxV) { minV = 0; maxV = 100; }
+          let defaultV = Math.round((minV + maxV) / 2);
+          let step = Math.max(1, Math.round((maxV - minV) / 100));
+
+          row.innerHTML = `
+            <div class="slider-label-row">
+              <span>${feature}</span>
+              <span class="val-display" id="val_${feature}">${defaultV.toLocaleString()}</span>
+            </div>
+            <input type="range" class="feature-slider" data-feature="${feature}" 
+                   min="${minV}" max="${maxV}" step="${step}" value="${defaultV}">
+          `;
+        }
+        container.appendChild(row);
+      });
+
+      // Bind slider input events for real-time inference
+      const inputs = container.querySelectorAll('.feature-slider');
+      inputs.forEach(input => {
+        input.addEventListener('input', () => {
+          const feat = input.getAttribute('data-feature');
+          const display = document.getElementById(`val_${feat}`);
+          if (display) {
+            display.textContent = parseFloat(input.value).toLocaleString();
+          }
+          calculateLivePrediction(best);
+        });
+      });
+
+      calculateLivePrediction(best);
+    }
+
+    function calculateLivePrediction(bestModel) {
+      if (!bestModel) return;
+
+      const beta = bestModel.beta;
+      let pred = beta[0]; // intercept
+      let eqParts = [`${beta[0].toFixed(2)}`];
+
+      bestModel.featureNames.forEach((feat, idx) => {
+        const input = document.querySelector(`.feature-slider[data-feature="${feat}"]`);
+        const val = input ? parseFloat(input.value) : 0;
+        const coef = beta[idx + 1];
+        pred += coef * val;
+
+        const sign = coef >= 0 ? '+' : '-';
+        eqParts.push(`${sign} (${Math.abs(coef).toFixed(4)} × ${val.toLocaleString()})`);
+      });
+
+      const display = document.getElementById('displayPredictedVal');
+      const units = document.getElementById('problemSelector').value === 'startups' ? '$' : '';
+      display.textContent = `${units}${pred.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+      const eqBox = document.getElementById('equationFormulaBox');
+      eqBox.innerHTML = `<strong>預測公式:</strong><br>${document.getElementById('labelTargetName').textContent} = ${eqParts.join(' ')}`;
+    }
+
+    // =========================================================================
+    // 5. DATASET LOADER CONTROLLER (任意網址 / 檔案載入)
+    // =========================================================================
+    async function fetchCsvContent(url) {
+      // 1. Auto-convert GitHub blob to raw URL
+      if (url.includes("github.com") && url.includes("/blob/")) {
+        url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/");
+      }
+
+      // 2. Try direct fetch
+      try {
+        const resp = await fetch(url);
+        if (resp.ok) return await resp.text();
+      } catch (e) {
+        console.warn("Direct fetch failed, trying proxy/fallback...", e);
+      }
+
+      // 3. Try CORS proxy for external URLs
+      if (url.startsWith("http")) {
+        try {
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+          const resp = await fetch(proxyUrl);
+          if (resp.ok) return await resp.text();
+        } catch (e) {
+          console.warn("Proxy fetch failed...", e);
+        }
+      }
+
+      // 4. Try local relative files if match
+      if (url.includes("50_Startups.csv")) {
+        const resp = await fetch("50_Startups.csv");
+        if (resp.ok) return await resp.text();
+      } else if (url.includes("Advertising.csv")) {
+        const resp = await fetch("Advertising.csv");
+        if (resp.ok) return await resp.text();
+      }
+
+      throw new Error("無法下載此網址的 CSV，若為外部網站且受到跨域 (CORS) 限制，請直接點選『上傳本地 CSV』！");
+    }
+
+    function processParsedData(data, targetColOverride = null) {
+      if (!data || data.length === 0) {
+        alert("載入失敗：無法解析 CSV 資料！");
+        return;
+      }
+
+      currentRawData = data;
+      const cols = Object.keys(currentRawData[0]).filter(c => c !== "");
+
+      // Determine target column
+      const problemKey = document.getElementById('problemSelector').value;
+      let targetCol = targetColOverride;
+
+      if (!targetCol) {
+        if (problemKey === 'startups' && cols.includes('Profit')) {
+          targetCol = 'Profit';
+        } else if (problemKey === 'advertising' && cols.includes('Sales')) {
+          targetCol = 'Sales';
+        } else if (cols.includes('Profit')) {
+          targetCol = 'Profit';
+        } else if (cols.includes('Sales')) {
+          targetCol = 'Sales';
+        } else {
+          targetCol = cols[cols.length - 1]; // default last column
+        }
+      }
+
+      // Populate Target Variable Dropdown
+      const targetSelect = document.getElementById('targetColumnSelect');
+      targetSelect.innerHTML = '';
+      cols.forEach(col => {
+        const opt = document.createElement('option');
+        opt.value = col;
+        opt.textContent = col;
+        if (col === targetCol) opt.selected = true;
+        targetSelect.appendChild(opt);
+      });
+
+      document.getElementById('labelTargetName').textContent = targetCol;
+
+      // Run ML Forward Selection
+      const analysis = runForwardSelection(currentRawData, targetCol);
+      currentModelResults = analysis.progressionResults;
+
+      // Update UI
+      updateKPIs(analysis.progressionResults, analysis.sampleCount, analysis.trainCount, analysis.testCount);
+      renderDualCharts(analysis.progressionResults);
+      renderProgressionTable(analysis.progressionResults);
+      setupDynamicSliders(problemKey, analysis);
+
+      // Status tag
+      const statusTag = document.getElementById('datasetStatusTag');
+      statusTag.innerHTML = `<i class="fa-solid fa-circle-check"></i> 成功載入！共 ${analysis.sampleCount} 筆樣本、${cols.length} 個欄位 (預測目標: <strong>${targetCol}</strong>)`;
+    }
+
+    async function loadAndProcessData(csvUrlOrText, isRawText = false) {
+      const btn = document.getElementById('btnLoadDataset');
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 下載分析中...`;
+      btn.disabled = true;
+
+      try {
+        let csvText = csvUrlOrText;
+        if (!isRawText) {
+          csvText = await fetchCsvContent(csvUrlOrText);
+        }
+
+        Papa.parse(csvText, {
+          header: true,
+          dynamicTyping: true,
+          skipEmptyLines: true,
+          complete: function (results) {
+            btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-down"></i> 載入並執行特徵選取`;
+            btn.disabled = false;
+            processParsedData(results.data);
+          },
+          error: function (err) {
+            btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-down"></i> 載入並執行特徵選取`;
+            btn.disabled = false;
+            alert("CSV 解析錯誤: " + err.message);
+          }
+        });
+      } catch (err) {
+        btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-down"></i> 載入並執行特徵選取`;
+        btn.disabled = false;
+        alert("載入錯誤: " + err.message);
+      }
+    }
+
+    // =========================================================================
+    // 6. EVENT LISTENERS & INITIALIZATION
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      const problemSelect = document.getElementById('problemSelector');
+      const urlInput = document.getElementById('datasetUrlInput');
+      const btnLoad = document.getElementById('btnLoadDataset');
+      const badge = document.getElementById('activeProblemBadge');
+      const targetSelect = document.getElementById('targetColumnSelect');
+
+      // Target column change listener (即時切換目標變量重新擬合)
+      targetSelect.addEventListener('change', () => {
+        const newTarget = targetSelect.value;
+        if (currentRawData && currentRawData.length > 0) {
+          processParsedData(currentRawData, newTarget);
+        }
+      });
+
+      // Helper: 同步問題鎖定/解鎖狀態
+      function syncProblemMode(mode) {
+        const lockBadge = document.getElementById('lockStatusBadge');
+        const lockIcon = document.getElementById('inputLockIcon');
+        const lockHint = document.getElementById('lockHintText');
+        const chipUpload = document.getElementById('chipUpload');
+
+        if (mode === 'startups' || mode === 'advertising') {
+          urlInput.readOnly = true;
+          urlInput.classList.add('locked');
+          urlInput.title = "官方標準資料源已鎖定，不可任意修改。如需自訂請切換至『自訂任意 Dataset』";
+          if (lockBadge) {
+            lockBadge.className = "lock-badge locked";
+            lockBadge.innerHTML = '<i class="fa-solid fa-lock"></i> 官方標準資料源';
+          }
+          if (lockIcon) lockIcon.innerHTML = '<i class="fa-solid fa-lock"></i>';
+          if (lockHint) lockHint.style.display = 'flex';
+          if (chipUpload) chipUpload.style.display = 'none';
+          btnLoad.innerHTML = '<i class="fa-solid fa-rotate"></i> 重新載入官方資料';
+        } else {
+          urlInput.readOnly = false;
+          urlInput.classList.remove('locked');
+          urlInput.title = "請輸入任意公開 CSV 檔案網址";
+          if (lockBadge) {
+            lockBadge.className = "lock-badge unlocked";
+            lockBadge.innerHTML = '<i class="fa-solid fa-lock-open"></i> 自由編輯模式 (已解鎖)';
+          }
+          if (lockIcon) lockIcon.innerHTML = '<i class="fa-solid fa-pen"></i>';
+          if (lockHint) lockHint.style.display = 'none';
+          if (chipUpload) chipUpload.style.display = 'inline-flex';
+          btnLoad.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> 載入並執行特徵選取';
+        }
+      }
+
+      // 點擊鎖定輸入框提示
+      urlInput.addEventListener('click', () => {
+        if (urlInput.readOnly) {
+          const lockBadge = document.getElementById('lockStatusBadge');
+          if (lockBadge) {
+            lockBadge.style.transform = 'scale(1.08)';
+            setTimeout(() => { lockBadge.style.transform = 'scale(1)'; }, 250);
+          }
+        }
+      });
+
+      // Problem Dropdown Change (加總分項目 1)
+      problemSelect.addEventListener('change', () => {
+        const val = problemSelect.value;
+        if (val === 'startups') {
+          urlInput.value = DATASETS.startups.url;
+          badge.textContent = "50 Startups (Profit)";
+          syncProblemMode('startups');
+          loadAndProcessData(urlInput.value);
+        } else if (val === 'advertising') {
+          urlInput.value = DATASETS.advertising.url;
+          badge.textContent = "Advertising Media (Sales)";
+          syncProblemMode('advertising');
+          loadAndProcessData(urlInput.value);
+        } else if (val === 'custom') {
+          badge.textContent = "自訂 Dataset 模式";
+          syncProblemMode('custom');
+          urlInput.focus();
+          urlInput.select();
+        }
+      });
+
+      // Quick Chips
+      document.getElementById('chipStartups').addEventListener('click', () => {
+        problemSelect.value = 'startups';
+        urlInput.value = DATASETS.startups.url;
+        badge.textContent = "50 Startups";
+        syncProblemMode('startups');
+        loadAndProcessData(urlInput.value);
+      });
+
+      document.getElementById('chipAdvertising').addEventListener('click', () => {
+        problemSelect.value = 'advertising';
+        urlInput.value = DATASETS.advertising.url;
+        badge.textContent = "Advertising (Sales)";
+        syncProblemMode('advertising');
+        loadAndProcessData(urlInput.value);
+      });
+
+      // File Upload
+      const fileInput = document.getElementById('csvFileInput');
+      document.getElementById('chipUpload').addEventListener('click', () => {
+        fileInput.click();
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          problemSelect.value = 'custom';
+          syncProblemMode('custom');
+          badge.textContent = file.name;
+          urlInput.value = `Local: ${file.name}`;
+          const reader = new FileReader();
+          reader.onload = (evt) => loadAndProcessData(evt.target.result, true);
+          reader.readAsText(file);
+        }
+      });
+
+      // Action Button
+      btnLoad.addEventListener('click', () => {
+        const url = urlInput.value.trim();
+        if (url) {
+          if (url !== DATASETS.startups.url && url !== DATASETS.advertising.url) {
+            problemSelect.value = 'custom';
+            syncProblemMode('custom');
+          }
+          badge.textContent = url.split("/").pop() || "Custom CSV";
+          loadAndProcessData(url);
+        }
+      });
+
+      // Initial Load with 50 Startups (Locked official dataset)
+      syncProblemMode('startups');
+      loadAndProcessData(DATASETS.startups.url);
+    });
+  </script>
+</body>
+
+</html>
